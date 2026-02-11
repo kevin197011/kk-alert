@@ -1,0 +1,1 @@
+{ "compilerOptions": { "composite": true, "skipLibCheck": true, "allowJs": true }, "include": ["vite.config.mjs"] }

@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E6C875;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8941F;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D2D2D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#171717;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="256" cy="256" r="240" fill="url(#darkGradient)" filter="url(#shadow)"/>
+  
+  <!-- 外圈装饰 -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="url(#goldGradient)" stroke-width="4" opacity="0.6"/>
+  <circle cx="256" cy="256" r="220" fill="none" stroke="url(#goldGradient)" stroke-width="2" opacity="0.3"/>
+  
+  <!-- 铃铛主体 -->
+  <path d="M256 120 
+           C220 120, 180 145, 170 195 
+           L160 280 
+           C155 310, 140 330, 120 350 
+           L392 350 
+           C372 330, 357 310, 352 280 
+           L342 195 
+           C332 145, 292 120, 256 120 Z" 
+        fill="url(#goldGradient)" 
+        filter="url(#glow)"/>
+  
+  <!-- 铃铛顶部 -->
+  <ellipse cx="256" cy="130" rx="35" ry="15" fill="#E6C875"/>
+  
+  <!-- 铃铛底部舌头 -->
+  <circle cx="256" cy="350" r="25" fill="url(#goldGradient)"/>
+  
+  <!-- 铃铛装饰线条 -->
+  <path d="M190 220 Q256 240 322 220" 
+        fill="none" 
+        stroke="#B8941F" 
+        stroke-width="3" 
+        opacity="0.5"/>
+  
+  <path d="M185 260 Q256 280 327 260" 
+        fill="none" 
+        stroke="#B8941F" 
+        stroke-width="3" 
+        opacity="0.5"/>
+  
+  <!-- 警报波纹效果 -->
+  <path d="M120 200 Q100 180 90 150" 
+        fill="none" 
+        stroke="#D4AF37" 
+        stroke-width="6" 
+        stroke-linecap="round"
+        opacity="0.8"/>
+  
+  <path d="M392 200 Q412 180 422 150" 
+        fill="none" 
+        stroke="#D4AF37" 
+        stroke-width="6" 
+        stroke-linecap="round"
+        opacity="0.8"/>
+  
+  <!-- 中心高光 -->
+  <ellipse cx="230" cy="180" rx="30" ry="40" fill="#FFFFFF" opacity="0.15"/>
+</svg>

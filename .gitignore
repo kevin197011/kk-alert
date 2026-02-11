@@ -1,0 +1,12 @@
+
+.cursor
+# Backend
+backend/data/
+*.db
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/vite.config.js
+# Env
+.env
+.env.local

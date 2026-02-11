@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E6C875" />
+      <stop offset="100%" style="stop-color:#B8941F" />
+    </linearGradient>
+    <linearGradient id="darkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D2D2D" />
+      <stop offset="100%" style="stop-color:#171717" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 圆角方形背景 -->
+  <rect x="10" y="10" width="160" height="160" rx="35" ry="35" fill="url(#darkGrad)"/>
+  
+  <!-- 外边框 -->
+  <rect x="10" y="10" width="160" height="160" rx="35" ry="35" 
+        fill="none" stroke="url(#goldGrad)" stroke-width="3"/>
+  
+  <!-- 铃铛 -->
+  <path d="M90 45 
+           C72 45, 52 58, 47 80 
+           L42 120 
+           C40 134, 32 144, 22 152 
+           L158 152 
+           C148 144, 140 134, 138 120 
+           L133 80 
+           C128 58, 108 45, 90 45 Z" 
+        fill="url(#goldGrad)"/>
+  
+  <!-- 铃铛舌头 -->
+  <circle cx="90" cy="152" r="12" fill="url(#goldGrad)"/>
+  
+  <!-- 波纹 -->
+  <path d="M22 85 Q15 75 12 60" fill="none" stroke="#D4AF37" stroke-width="4" stroke-linecap="round"/>
+  <path d="M158 85 Q165 75 168 60" fill="none" stroke="#D4AF37" stroke-width="4" stroke-linecap="round"/>
+</svg>
