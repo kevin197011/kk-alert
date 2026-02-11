@@ -11,7 +11,7 @@ import { useAuth } from '../auth'
 
 const { Title, Text } = Typography
 
-// ---------- DevOps Network Canvas Background ----------
+// ---------- DevOps Network Canvas (light-theme adapted) ----------
 
 interface Node {
   x: number
@@ -32,9 +32,18 @@ interface DataPacket {
   color: string
 }
 
-const NODE_COUNT = 28
-const CONNECT_DIST = 200
-const PACKET_COLORS = ['#4ade80', '#60a5fa', '#f59e0b', '#a78bfa']
+const NODE_COUNT = 24
+const CONNECT_DIST = 190
+
+// Muted colors that work on a light background
+const NODE_COLORS: Record<Node['type'], string> = {
+  server: '23, 23, 23',     // --color-primary
+  database: '64, 64, 64',   // --color-secondary
+  cloud: '212, 175, 55',    // --color-cta (gold)
+  monitor: '100, 116, 139', // slate
+}
+
+const PACKET_COLORS = ['#D4AF37', '#171717', '#64748b', '#94a3b8']
 
 function NetworkCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -50,34 +59,29 @@ function NetworkCanvas() {
       nodes.push({
         x: Math.random() * w,
         y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
         radius: Math.random() * 2 + 2,
         type: types[Math.floor(Math.random() * types.length)],
         pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.01 + Math.random() * 0.02,
+        pulseSpeed: 0.008 + Math.random() * 0.015,
       })
     }
     nodesRef.current = nodes
     packetsRef.current = []
   }, [])
 
-  // Draw node icon (tiny geometric shapes per type)
   const drawNode = useCallback(
     (ctx: CanvasRenderingContext2D, node: Node, glow: number) => {
       const { x, y, type } = node
-      const s = 4 + glow * 2 // base size
+      const s = 3.5 + glow * 1.5
       ctx.save()
 
-      // Glow ring
-      const alpha = 0.15 + glow * 0.25
-      const ringR = s + 6 + glow * 4
+      // Subtle glow ring
+      const alpha = 0.06 + glow * 0.1
+      const ringR = s + 5 + glow * 3
       const grad = ctx.createRadialGradient(x, y, 0, x, y, ringR)
-      const baseColor =
-        type === 'server' ? '96, 165, 250' :
-        type === 'database' ? '74, 222, 128' :
-        type === 'cloud' ? '167, 139, 250' :
-        '251, 191, 36'
+      const baseColor = NODE_COLORS[type]
       grad.addColorStop(0, `rgba(${baseColor}, ${alpha})`)
       grad.addColorStop(1, `rgba(${baseColor}, 0)`)
       ctx.fillStyle = grad
@@ -85,24 +89,20 @@ function NetworkCanvas() {
       ctx.arc(x, y, ringR, 0, Math.PI * 2)
       ctx.fill()
 
-      // Core dot
-      ctx.fillStyle = `rgba(${baseColor}, ${0.6 + glow * 0.4})`
+      // Core shape
+      ctx.fillStyle = `rgba(${baseColor}, ${0.25 + glow * 0.25})`
       ctx.beginPath()
       if (type === 'server') {
-        // Square
         ctx.rect(x - s / 2, y - s / 2, s, s)
       } else if (type === 'database') {
-        // Circle
         ctx.arc(x, y, s / 2, 0, Math.PI * 2)
       } else if (type === 'cloud') {
-        // Diamond
         ctx.moveTo(x, y - s / 2)
         ctx.lineTo(x + s / 2, y)
         ctx.lineTo(x, y + s / 2)
         ctx.lineTo(x - s / 2, y)
         ctx.closePath()
       } else {
-        // Triangle (monitor / alert)
         ctx.moveTo(x, y - s / 2)
         ctx.lineTo(x + s / 2, y + s / 2)
         ctx.lineTo(x - s / 2, y + s / 2)
@@ -152,15 +152,15 @@ function NetworkCanvas() {
         n.y = Math.max(0, Math.min(h, n.y))
       }
 
-      // Draw connections
+      // Draw connections (light gray on light bg)
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x
           const dy = nodes[i].y - nodes[j].y
           const dist = Math.sqrt(dx * dx + dy * dy)
           if (dist < CONNECT_DIST) {
-            const alpha = (1 - dist / CONNECT_DIST) * 0.12
-            ctx.strokeStyle = `rgba(148, 163, 184, ${alpha})`
+            const alpha = (1 - dist / CONNECT_DIST) * 0.08
+            ctx.strokeStyle = `rgba(23, 23, 23, ${alpha})`
             ctx.lineWidth = 0.5
             ctx.beginPath()
             ctx.moveTo(nodes[i].x, nodes[i].y)
@@ -170,8 +170,8 @@ function NetworkCanvas() {
         }
       }
 
-      // Spawn data packets occasionally
-      if (Math.random() < 0.03 && packets.length < 12) {
+      // Spawn data packets
+      if (Math.random() < 0.025 && packets.length < 10) {
         const from = Math.floor(Math.random() * nodes.length)
         let to = Math.floor(Math.random() * nodes.length)
         while (to === from) to = Math.floor(Math.random() * nodes.length)
@@ -182,7 +182,7 @@ function NetworkCanvas() {
             fromIdx: from,
             toIdx: to,
             progress: 0,
-            speed: 0.005 + Math.random() * 0.01,
+            speed: 0.004 + Math.random() * 0.008,
             color: PACKET_COLORS[Math.floor(Math.random() * PACKET_COLORS.length)],
           })
         }
@@ -201,19 +201,18 @@ function NetworkCanvas() {
         const px = from.x + (to.x - from.x) * p.progress
         const py = from.y + (to.y - from.y) * p.progress
         const alpha = p.progress < 0.1 ? p.progress / 0.1 : p.progress > 0.9 ? (1 - p.progress) / 0.1 : 1
-        ctx.fillStyle = p.color.replace(')', `, ${alpha * 0.8})`)
-          .replace('rgb', 'rgba')
-        // Fallback for hex colors
+
         const r = parseInt(p.color.slice(1, 3), 16)
         const g = parseInt(p.color.slice(3, 5), 16)
         const b = parseInt(p.color.slice(5, 7), 16)
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`
         ctx.beginPath()
         ctx.arc(px, py, 2, 0, Math.PI * 2)
         ctx.fill()
 
         // Trail
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.2})`
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.15})`
         const trail = Math.max(0, p.progress - 0.05)
         const tx = from.x + (to.x - from.x) * trail
         const ty = from.y + (to.y - from.y) * trail
@@ -265,7 +264,6 @@ function ScrollingLogs() {
   const [lines, setLines] = useState<string[]>([])
 
   useEffect(() => {
-    // Seed a few initial lines
     const initial = Array.from({ length: 4 }, () =>
       LOG_LINES[Math.floor(Math.random() * LOG_LINES.length)]
     )
@@ -274,9 +272,9 @@ function ScrollingLogs() {
     const timer = setInterval(() => {
       setLines((prev) => {
         const next = [...prev, LOG_LINES[Math.floor(Math.random() * LOG_LINES.length)]]
-        return next.slice(-6) // Keep only last 6 lines visible
+        return next.slice(-5)
       })
-    }, 2800)
+    }, 3000)
 
     return () => clearInterval(timer)
   }, [])
@@ -286,8 +284,8 @@ function ScrollingLogs() {
       {lines.map((line, i) => (
         <motion.div
           key={`${i}-${line}`}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: i === lines.length - 1 ? 0.5 : 0.25, x: 0 }}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: i === lines.length - 1 ? 0.35 : 0.18, x: 0 }}
           transition={{ duration: 0.4 }}
           className="login-log-line"
         >
@@ -328,63 +326,65 @@ export default function Login() {
 
       <motion.div
         className="login-panel"
-        initial={{ opacity: 0, y: 30, scale: 0.96 }}
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
       >
         {/* Brand */}
         <motion.div
           className="login-brand"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
         >
           <div className="login-logo">
             <BellOutlined />
           </div>
           <div>
-            <Title level={3} style={{ margin: 0, color: '#fff', letterSpacing: 1 }}>
+            <Title level={3} className="login-title">
               KK Alert
             </Title>
-            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+            <Text className="login-subtitle">
               Intelligent Alert Management
             </Text>
           </div>
         </motion.div>
 
-        {/* Divider line */}
+        {/* Divider */}
         <div className="login-divider" />
 
         {/* Form */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
         >
           <Form onFinish={onFinish} layout="vertical" size="large" className="login-form">
             <Form.Item
               name="username"
+              label="用户名"
               rules={[{ required: true, message: '请输入用户名' }]}
             >
               <Input
-                prefix={<UserOutlined style={{ color: 'rgba(255,255,255,0.35)' }} />}
-                placeholder="用户名"
+                prefix={<UserOutlined className="login-input-icon" />}
+                placeholder="请输入用户名"
                 autoComplete="username"
               />
             </Form.Item>
 
             <Form.Item
               name="password"
+              label="密码"
               rules={[{ required: true, message: '请输入密码' }]}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: 'rgba(255,255,255,0.35)' }} />}
-                placeholder="密码"
+                prefix={<LockOutlined className="login-input-icon" />}
+                placeholder="请输入密码"
                 autoComplete="current-password"
               />
             </Form.Item>
 
-            <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
               <Button
                 type="primary"
                 htmlType="submit"
@@ -402,9 +402,9 @@ export default function Login() {
           className="login-footer"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.7 }}
         >
-          &copy; {new Date().getFullYear()} KK Alert
+          &copy; {new Date().getFullYear()} KK Alert &middot; 系统运行部驱动
         </motion.div>
       </motion.div>
     </div>

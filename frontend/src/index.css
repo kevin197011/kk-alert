@@ -80,7 +80,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0b0f1a;
+  background: #f8fafc;
   position: relative;
   overflow: hidden;
 }
@@ -97,7 +97,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Scrolling log lines at bottom */
 .login-logs {
   position: absolute;
-  bottom: 24px;
+  bottom: 20px;
   left: 32px;
   right: 32px;
   z-index: 1;
@@ -105,7 +105,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Fira Code', 'Courier New', monospace;
   font-size: 11px;
   line-height: 1.8;
-  color: rgba(148, 163, 184, 0.4);
+  color: var(--color-secondary);
 }
 
 .login-log-line {
@@ -115,24 +115,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .login-log-time {
-  color: rgba(74, 222, 128, 0.4);
+  color: var(--color-cta);
+  opacity: 0.6;
 }
 
-/* Glass panel */
+/* Login panel - white card matching site style */
 .login-panel {
   position: relative;
   z-index: 2;
   width: 100%;
   max-width: 380px;
   padding: 40px 36px 32px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow:
-    0 0 0 1px rgba(148, 163, 184, 0.05),
-    0 25px 50px rgba(0, 0, 0, 0.4);
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
 .login-brand {
@@ -145,80 +144,159 @@ h1, h2, h3, h4, h5, h6 {
 .login-logo {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, #d4af37, #f5d060);
+  background: var(--color-cta);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  color: #0b0f1a;
+  color: var(--color-primary);
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+}
+
+.login-title {
+  margin: 0 !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-heading) !important;
+  letter-spacing: 1px;
+}
+
+.login-subtitle {
+  color: var(--color-secondary) !important;
+  font-size: 12px !important;
 }
 
 .login-divider {
   height: 1px;
-  background: linear-gradient(to right, transparent, rgba(148, 163, 184, 0.15), transparent);
+  background: var(--color-border);
   margin-bottom: 28px;
 }
 
-/* Form styling */
-.login-form .ant-input-affix-wrapper,
-.login-form .ant-input {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(148, 163, 184, 0.12) !important;
+/* Form labels */
+.login-form .ant-form-item-label > label {
+  color: var(--color-text) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  height: auto !important;
+}
+
+.login-form .ant-form-item-label > label::before {
+  display: none !important;
+}
+
+.login-form .ant-form-item {
+  margin-bottom: 20px;
+}
+
+/* Form inputs — target the outer wrapper only for sizing/border */
+.login-form .ant-input-affix-wrapper {
+  background: #fafafa !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: 8px !important;
-  color: #e2e8f0 !important;
-  height: 44px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  height: 46px;
+  padding: 0 14px !important;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.login-form .ant-input-affix-wrapper:hover,
-.login-form .ant-input:hover {
-  border-color: rgba(148, 163, 184, 0.25) !important;
+/* Inner input inside the wrapper: reset to fill naturally */
+.login-form .ant-input-affix-wrapper .ant-input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: auto !important;
+  padding: 0 !important;
+  color: var(--color-text) !important;
+  font-size: 14px;
 }
 
-.login-form .ant-input-affix-wrapper:focus,
+/* Hover */
+.login-form .ant-input-affix-wrapper:hover {
+  border-color: #ccc !important;
+  background: #f5f5f5 !important;
+}
+
+/* Focus */
 .login-form .ant-input-affix-wrapper-focused,
-.login-form .ant-input:focus {
-  border-color: rgba(212, 175, 55, 0.5) !important;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.08) !important;
+.login-form .ant-input-affix-wrapper:focus-within {
+  border-color: var(--color-cta) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08) !important;
+  background: var(--color-background) !important;
 }
 
+/* Prefix icon */
+.login-input-icon {
+  color: var(--color-secondary) !important;
+  opacity: 0.4;
+  font-size: 15px;
+  margin-right: 4px;
+}
+
+.login-form .ant-input-affix-wrapper-focused .login-input-icon,
+.login-form .ant-input-affix-wrapper:focus-within .login-input-icon {
+  opacity: 0.7;
+  color: var(--color-cta) !important;
+}
+
+/* Placeholder */
 .login-form .ant-input::placeholder {
-  color: rgba(148, 163, 184, 0.35) !important;
+  color: #b0b0b0 !important;
+  font-size: 14px;
+}
+
+/* Password eye icon */
+.login-form .ant-input-suffix {
+  display: flex;
+  align-items: center;
 }
 
 .login-form .ant-input-password-icon {
-  color: rgba(148, 163, 184, 0.4) !important;
+  color: var(--color-secondary) !important;
+  opacity: 0.4;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
 .login-form .ant-input-password-icon:hover {
-  color: rgba(148, 163, 184, 0.7) !important;
+  opacity: 0.8;
+  color: var(--color-text) !important;
 }
 
+/* Validation error */
 .login-form .ant-form-item-explain-error {
   font-size: 12px;
   margin-top: 4px;
 }
 
-/* Submit button */
+/* Error state border */
+.login-form .ant-form-item-has-error .ant-input-affix-wrapper {
+  border-color: #ff4d4f !important;
+}
+
+.login-form .ant-form-item-has-error .ant-input-affix-wrapper:focus-within {
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.08) !important;
+}
+
+/* Submit button - primary dark with gold accent */
 .login-submit-btn {
   height: 44px !important;
   font-size: 15px !important;
   font-weight: 600 !important;
   letter-spacing: 2px;
   border-radius: 8px !important;
-  background: linear-gradient(135deg, #d4af37, #c5a028) !important;
+  background: var(--color-primary) !important;
   border: none !important;
-  color: #0b0f1a !important;
+  color: var(--color-background) !important;
   transition: all 0.25s ease !important;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 2px 8px rgba(23, 23, 23, 0.15);
 }
 
 .login-submit-btn:hover {
-  background: linear-gradient(135deg, #e0bf4a, #d4af37) !important;
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35) !important;
+  background: var(--color-secondary) !important;
+  box-shadow: 0 4px 16px rgba(23, 23, 23, 0.2) !important;
   transform: translateY(-1px);
 }
 
@@ -230,7 +308,8 @@ h1, h2, h3, h4, h5, h6 {
   text-align: center;
   margin-top: 24px;
   font-size: 11px;
-  color: rgba(148, 163, 184, 0.25);
+  color: var(--color-secondary);
+  opacity: 0.4;
   letter-spacing: 0.5px;
 }
 
