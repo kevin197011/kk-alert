@@ -358,18 +358,13 @@ func (s *Scheduler) queryPrometheus(ctx context.Context, rule *models.Rule, ds *
 		// Determine if this alert needs (re-)processing:
 		// 1. First time seeing this series (!hadResult)
 		// 2. Value changed (metric fluctuation)
-		// 3. Stable alert needs periodic re-process so engine can re-send per send_interval
+		// 3. Stable alert due for repeat notification (based on actual DB send time)
 		valueChanged := !hadResult || roundValue(lastResult.Value) != roundValue(value)
-		needsReprocess := false
-		if hadResult && !valueChanged && lastResult.AlertID != "" {
-			// Re-process stable alerts every 60s so the engine's sendRateLimited
-			// can decide whether to send a repeat notification.
-			needsReprocess = time.Since(lastResult.Timestamp) >= 60*time.Second
-		}
-		if valueChanged || needsReprocess {
+
+		if valueChanged {
+			// --- Path A: value changed or new series → create/update alert in DB ---
 			alertID := lastResult.AlertID
 			if alertID == "" {
-				// After restart, in-memory state is lost. Reuse existing firing alert with same (source_id, external_id).
 				var existingFiring models.Alert
 				db.Where("source_id = ? AND external_id = ? AND status = ?", ds.ID, extKey, "firing").Limit(1).Find(&existingFiring)
 				if existingFiring.ID != "" {
@@ -393,13 +388,10 @@ func (s *Scheduler) queryPrometheus(ctx context.Context, rule *models.Rule, ds *
 				Annotations:  string(annotationsJSON),
 			}
 
-			// New key: Create so alert appears in history/reports. Existing (from memory or DB lookup): Save to update but preserve FiringAt and CreatedAt.
 			if !hadResult {
-				// Check again: we may have set alertID from existingFiring above
 				var exists models.Alert
 				db.Where("id = ?", alertID).Limit(1).Find(&exists)
 				if exists.ID != "" {
-					// Reuse existing row (e.g. after restart) — preserve FiringAt and CreatedAt
 					if !exists.FiringAt.IsZero() {
 						alert.FiringAt = exists.FiringAt
 					}
@@ -424,7 +416,7 @@ func (s *Scheduler) queryPrometheus(ctx context.Context, rule *models.Rule, ds *
 				var existing models.Alert
 				db.Where("id = ?", alertID).Limit(1).Find(&existing)
 				if existing.ID != "" {
-					alert.FiringAt = existing.FiringAt // preserve so duration (e.g. 5m) is satisfied when re-processing
+					alert.FiringAt = existing.FiringAt
 					alert.CreatedAt = existing.CreatedAt
 				}
 				if res := db.Save(&alert); res.Error != nil {
@@ -433,11 +425,8 @@ func (s *Scheduler) queryPrometheus(ctx context.Context, rule *models.Rule, ds *
 				}
 			}
 
-			// Process alert through engine asynchronously so notification
-			// delivery (rate limiters, HTTP) does not block the scheduler.
 			engine.ProcessAlertAsync(db, &alert)
 
-			// Update state (reset MissCount since series is present)
 			state.lastResults[extKey] = queryResult{
 				Metric:    metric,
 				Value:     value,
@@ -452,10 +441,30 @@ func (s *Scheduler) queryPrometheus(ctx context.Context, rule *models.Rule, ds *
 			} else {
 				log.Printf("[scheduler] rule %d updated alert %s (value=%.2f)", rule.ID, alertID, value)
 			}
-		} else if hadResult && lastResult.MissCount > 0 {
-			// Series reappeared after being absent — reset miss counter
-			lastResult.MissCount = 0
-			state.lastResults[extKey] = lastResult
+		} else if lastResult.AlertID != "" {
+			// --- Path B: stable firing alert → check if repeat notification is due ---
+			// Query actual last successful send time from DB so we have zero drift.
+			sendInterval := parseSendInterval(rule.SendInterval)
+			needsSend := true
+			var lastRecord models.AlertSendRecord
+			if err := db.Where("alert_id = ? AND success = ?", lastResult.AlertID, true).
+				Order("created_at DESC").Limit(1).Find(&lastRecord).Error; err == nil && lastRecord.ID != 0 {
+				if time.Since(lastRecord.CreatedAt) < sendInterval {
+					needsSend = false
+				}
+			}
+
+			if needsSend {
+				var alert models.Alert
+				if err := db.Where("id = ? AND status = ?", lastResult.AlertID, "firing").Limit(1).Find(&alert).Error; err == nil && alert.ID != "" {
+					engine.ProcessAlertAsync(db, &alert)
+				}
+			}
+			// Reset MissCount if it was incremented from a prior absence
+			if lastResult.MissCount > 0 {
+				lastResult.MissCount = 0
+				state.lastResults[extKey] = lastResult
+			}
 		}
 	}
 	if numResults > 0 {
@@ -552,6 +561,22 @@ func MatchThreshold(levels []ThresholdLevel, value float64) *ThresholdLevel {
 		}
 	}
 	return nil
+}
+
+// parseSendInterval returns the effective send interval for repeat notifications.
+// Falls back to 5 minutes if not set or invalid. Minimum 30 seconds.
+func parseSendInterval(s string) time.Duration {
+	if s == "" || s == "0" {
+		return 5 * time.Minute
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 5 * time.Minute
+	}
+	if d < 30*time.Second {
+		d = 30 * time.Second
+	}
+	return d
 }
 
 func parseInterval(s string) time.Duration {

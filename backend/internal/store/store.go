@@ -27,6 +27,7 @@ func migrate(db *gorm.DB) error {
 		&models.AlertSilence{},
 		&models.JiraCreated{},
 		&models.SystemConfig{},
+		&models.OIDCConfig{},
 	); err != nil {
 		return err
 	}

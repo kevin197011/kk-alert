@@ -61,6 +61,12 @@ func main() {
 	r.POST("/api/v1/auth/login", wrapAuth(db.DB).Login)
 	r.GET("/api/v1/health", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
 
+	// OIDC public endpoints (no auth required)
+	oidcH := &handlers.OIDCHandler{DB: db.DB}
+	r.GET("/api/v1/auth/oidc/status", oidcH.Status)
+	r.GET("/api/v1/auth/oidc/login", oidcH.Login)
+	r.GET("/api/v1/auth/oidc/callback", oidcH.Callback)
+
 	// Swagger: OpenAPI spec and UI (no auth); token via Authorize in Swagger UI
 	r.GET("/api/openapi.json", serveOpenAPI)
 	swaggerHTML, _ := fs.ReadFile(docsFS, "docs/swagger.html")
@@ -164,6 +170,11 @@ func main() {
 
 		set := &handlers.SettingsHandler{DB: db.DB}
 		admin.PUT("/settings", set.Update)
+
+		oidcAdmin := &handlers.OIDCHandler{DB: db.DB}
+		admin.GET("/oidc/config", oidcAdmin.GetConfig)
+		admin.PUT("/oidc/config", oidcAdmin.SaveConfig)
+		admin.POST("/oidc/test", oidcAdmin.TestConfig)
 	}
 
 	addr := os.Getenv("ADDR")

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { App, Form, Input, Button, Typography } from 'antd'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { App, Form, Input, Button, Typography, Divider } from 'antd'
 import { motion } from 'framer-motion'
 import {
   UserOutlined,
   LockOutlined,
   BellOutlined,
+  LoginOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../auth'
 
@@ -304,8 +305,32 @@ function ScrollingLogs() {
 export default function Login() {
   const { message } = App.useApp()
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, loginWithToken, token } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [oidcStatus, setOidcStatus] = useState<{ enabled: boolean; display_name: string } | null>(null)
+
+  // Handle OIDC callback: ?oidc_token=<jwt>
+  useEffect(() => {
+    const oidcToken = searchParams.get('oidc_token')
+    if (oidcToken) {
+      loginWithToken(oidcToken)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, loginWithToken, setSearchParams])
+
+  // Redirect when token is set (covers both local login and OIDC callback)
+  useEffect(() => {
+    if (token) navigate('/', { replace: true })
+  }, [token, navigate])
+
+  // Fetch OIDC status on mount
+  useEffect(() => {
+    fetch('/api/v1/auth/oidc/status')
+      .then((r) => r.json())
+      .then((data) => setOidcStatus(data))
+      .catch(() => setOidcStatus({ enabled: false, display_name: '' }))
+  }, [])
 
   const onFinish = async (v: { username: string; password: string }) => {
     setLoading(true)
@@ -317,6 +342,10 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleOIDCLogin = () => {
+    window.location.href = '/api/v1/auth/oidc/login'
   }
 
   return (
@@ -359,6 +388,23 @@ export default function Login() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.4 }}
         >
+          {oidcStatus?.enabled && (
+            <>
+              <Button
+                block
+                size="large"
+                icon={<LoginOutlined />}
+                onClick={handleOIDCLogin}
+                className="login-oidc-btn"
+              >
+                {oidcStatus.display_name || 'SSO'} 登录
+              </Button>
+              <Divider plain style={{ margin: '16px 0', color: 'var(--color-secondary)', fontSize: 13 }}>
+                或使用账号密码
+              </Divider>
+            </>
+          )}
+
           <Form onFinish={onFinish} layout="vertical" size="large" className="login-form">
             <Form.Item
               name="username"

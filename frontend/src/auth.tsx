@@ -16,6 +16,8 @@ type AuthContextType = {
   /** True while token is set but /auth/me has not yet returned (e.g. after refresh). */
   userLoading: boolean
   login: (username: string, password: string) => Promise<void>
+  /** Accept a JWT directly (e.g. from OIDC callback). */
+  loginWithToken: (jwt: string) => void
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -25,7 +27,6 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [user, setUser] = useState<User | null>(null)
-  // Start true when token exists so first paint (before /auth/me) does not redirect admin routes to dashboard
   const [userLoading, setUserLoading] = useState<boolean>(() => !!localStorage.getItem(TOKEN_KEY))
 
   const refreshUser = useCallback(async () => {
@@ -82,13 +83,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: (data.user?.role === 'admin' ? 'admin' : 'user') as UserRole,
     })
   }, [])
+
+  const loginWithToken = useCallback((jwt: string) => {
+    setToken(jwt)
+    localStorage.setItem(TOKEN_KEY, jwt)
+  }, [])
+
   const logout = useCallback(() => {
     setToken(null)
     setUser(null)
     localStorage.removeItem(TOKEN_KEY)
   }, [])
+
   return (
-    <AuthContext.Provider value={{ token, user, userLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ token, user, userLoading, login, loginWithToken, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

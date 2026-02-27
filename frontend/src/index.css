@@ -280,6 +280,24 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.08) !important;
 }
 
+/* OIDC / SSO login button */
+.login-oidc-btn {
+  height: 44px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  border: 1.5px solid var(--color-border) !important;
+  background: var(--color-background) !important;
+  color: var(--color-text) !important;
+  transition: all 0.25s ease !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.login-oidc-btn:hover {
+  border-color: var(--color-cta) !important;
+  color: var(--color-cta) !important;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.12) !important;
+}
+
 /* Submit button - primary dark with gold accent */
 .login-submit-btn {
   height: 44px !important;

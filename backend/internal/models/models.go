@@ -12,9 +12,25 @@ type User struct {
 	Username     string         `gorm:"uniqueIndex;size:64" json:"username"`
 	PasswordHash string         `gorm:"size:255" json:"-"`
 	Role         string         `gorm:"size:32;default:user" json:"role"` // admin | user
+	OIDCSub      string         `gorm:"size:255;index" json:"oidc_sub,omitempty"`
+	OIDCIssuer   string         `gorm:"size:512" json:"oidc_issuer,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// OIDCConfig stores OIDC provider settings in the DB (single row, managed by admin).
+type OIDCConfig struct {
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	Enabled      bool   `gorm:"default:false" json:"enabled"`
+	Issuer       string `gorm:"size:512" json:"issuer"`
+	ClientID     string `gorm:"size:255" json:"client_id"`
+	ClientSecret string `gorm:"size:512" json:"-"`
+	RedirectURI  string `gorm:"size:512" json:"redirect_uri"`
+	Scopes       string `gorm:"size:255;default:openid profile email" json:"scopes"`
+	DisplayName  string `gorm:"size:64;default:SSO" json:"display_name"`
+	AutoRegister bool   `gorm:"default:true" json:"auto_register"`
+	DefaultRole  string `gorm:"size:32;default:user" json:"default_role"`
 }
 
 // Datasource for alert ingestion (Prometheus, VictoriaMetrics, ES, Doris).
