@@ -15,6 +15,7 @@ import {
   StopOutlined,
   UnorderedListOutlined,
   DownloadOutlined,
+  CopyOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -510,9 +511,26 @@ export default function Alerts() {
               title: '告警ID',
               dataIndex: 'alert_id',
               ellipsis: true,
-              width: 260,
-              render: (id) => (
-                <Text code style={{ fontSize: 12 }}>{id}</Text>
+              width: 280,
+              render: (id: string) => (
+                <Space size={4}>
+                  <Text code style={{ fontSize: 12 }} copyable={false}>{id}</Text>
+                  <Tooltip title="复制 ID">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      style={{ color: 'var(--color-secondary)', fontSize: 12 }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigator.clipboard.writeText(id).then(
+                          () => message.success('告警 ID 已复制'),
+                          () => message.error('复制失败'),
+                        )
+                      }}
+                    />
+                  </Tooltip>
+                </Space>
               ),
             },
             {
