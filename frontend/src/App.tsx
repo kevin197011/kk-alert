@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './auth'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Datasources from './pages/Datasources'
 import Channels from './pages/Channels'
@@ -10,9 +11,9 @@ import Rules from './pages/Rules'
 import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
-import Permissions from './pages/Permissions'
+import Roles from './pages/Roles'
 
-const ADMIN_ONLY_PATHS = ['/rules', '/datasources', '/channels', '/templates', '/users', '/permissions']
+const ADMIN_ONLY_PATHS = ['/rules', '/datasources', '/channels', '/templates', '/users', '/roles']
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuth()
@@ -37,6 +38,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route
         path="/"
         element={
@@ -56,7 +58,7 @@ export default function App() {
         <Route path="templates" element={<Templates />} />
         <Route path="rules" element={<Rules />} />
         <Route path="users" element={<Users />} />
-        <Route path="permissions" element={<Permissions />} />
+        <Route path="roles" element={<Roles />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

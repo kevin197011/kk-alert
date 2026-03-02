@@ -39,6 +39,8 @@ func main() {
 	seedDefaultTemplate(db.DB)
 	seedSettings(db.DB)
 	fixTemplatesRuleDescriptionHeader(db.DB)
+	handlers.SeedPermissions(db.DB)
+	handlers.SeedDefaultRoles(db.DB)
 
 	sched := scheduler.NewScheduler(db.DB)
 	sched.Start()
@@ -175,7 +177,28 @@ func main() {
 		admin.GET("/oidc/config", oidcAdmin.GetConfig)
 		admin.PUT("/oidc/config", oidcAdmin.SaveConfig)
 		admin.POST("/oidc/test", oidcAdmin.TestConfig)
+
+		// Password reset endpoints (admin only for admin reset)
+		pr := &handlers.PasswordResetHandler{DB: db.DB}
+		admin.POST("/users/:id/reset-password", pr.AdminResetPassword)
+
+		// Role management
+		roleH := &handlers.RoleHandler{DB: db.DB}
+		admin.GET("/roles", roleH.ListRoles)
+		admin.GET("/roles/:id", roleH.GetRole)
+		admin.POST("/roles", roleH.CreateRole)
+		admin.PUT("/roles/:id", roleH.UpdateRole)
+		admin.DELETE("/roles/:id", roleH.DeleteRole)
+		admin.GET("/permissions", roleH.ListPermissions)
 	}
+
+	// Public password reset endpoints
+	prPublic := &handlers.PasswordResetHandler{DB: db.DB}
+	r.POST("/api/v1/auth/forgot-password", prPublic.ForgotPassword)
+	r.POST("/api/v1/auth/reset-password", prPublic.ResetPassword)
+
+	// Authenticated password change endpoint (in protected api group)
+	api.POST("/auth/change-password", prPublic.ChangePassword)
 
 	addr := os.Getenv("ADDR")
 	if addr == "" {

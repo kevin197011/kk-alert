@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -212,6 +213,16 @@ func (h *RuleHandler) Batch(c *gin.Context) {
 		res := h.DB.Model(&models.Rule{}).Where("id IN ?", req.IDs).Update("enabled", false)
 		ok = int(res.RowsAffected)
 		fail = len(req.IDs) - ok
+		// Auto-resolve firing alerts for disabled rules
+		if ok > 0 {
+			now := time.Now()
+			h.DB.Model(&models.Alert{}).
+				Where("status = ? AND source_id IN ?", "firing", req.IDs).
+				Updates(map[string]interface{}{
+					"status":      "resolved",
+					"resolved_at": now,
+				})
+		}
 	case "delete":
 		res := h.DB.Delete(&models.Rule{}, req.IDs)
 		ok = int(res.RowsAffected)

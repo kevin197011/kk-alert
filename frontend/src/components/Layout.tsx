@@ -19,6 +19,7 @@ import {
   SettingOutlined,
   ApiOutlined,
   KeyOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons'
 import { useAuth, type UserRole } from '../auth'
 
@@ -33,8 +34,8 @@ const allNavItems = [
   { key: '/datasources', icon: <DatabaseOutlined />, label: '数据源', roles: ['admin'] as UserRole[] },
   { key: '/channels', icon: <NotificationOutlined />, label: '通知渠道', roles: ['admin'] as UserRole[] },
   { key: '/templates', icon: <FileTextOutlined />, label: '通知模板', roles: ['admin'] as UserRole[] },
+  { key: '/roles', icon: <SafetyOutlined />, label: '角色管理', roles: ['admin'] as UserRole[] },
   { key: '/users', icon: <UserOutlined />, label: '用户管理', roles: ['admin'] as UserRole[] },
-  { key: '/permissions', icon: <SettingOutlined />, label: '权限管理', roles: ['admin'] as UserRole[] },
 ]
 
 const FIRING_POLL_INTERVAL_MS = 15000

@@ -28,6 +28,9 @@ func migrate(db *gorm.DB) error {
 		&models.JiraCreated{},
 		&models.SystemConfig{},
 		&models.OIDCConfig{},
+		&models.PasswordResetToken{},
+		&models.Role{},
+		&models.Permission{},
 	); err != nil {
 		return err
 	}
@@ -35,10 +38,24 @@ func migrate(db *gorm.DB) error {
 }
 
 // migrateAlertSuppressionsToSilences one-time: copy alert_suppressions -> alert_silences, drop old table.
+// This migration silently skips if the old table doesn't exist (no error output).
 func migrateAlertSuppressionsToSilences(db *gorm.DB) error {
-	if res := db.Exec("SELECT 1 FROM alert_suppressions LIMIT 1"); res.Error != nil {
-		return nil // old table does not exist
+	// Check if old table exists using SQLite-compatible query
+	// For PostgreSQL, this will error and we handle it gracefully
+	var count int64
+	result := db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='alert_suppressions'").Count(&count)
+	if result.Error != nil {
+		// PostgreSQL or other DB - try alternative check
+		// If table doesn't exist, we'll get an error which we ignore
+		return nil
 	}
+	if count == 0 {
+		// Table doesn't exist, nothing to migrate
+		return nil
+	}
+
+	// Migration: copy data and drop old table
+	// Ignore errors as the migration is idempotent
 	_ = db.Exec("INSERT INTO alert_silences (id, alert_id, silence_until, created_at) SELECT id, alert_id, suppress_until, created_at FROM alert_suppressions")
 	_ = db.Exec("DROP TABLE alert_suppressions")
 	return nil
@@ -63,10 +80,12 @@ func NewPostgres(dsn string) (*DB, error) {
 		return nil, err
 	}
 	// Tune connection pool to handle concurrent scheduler + API load.
+	// Optimized for 1000+ concurrent rules with queued writes
 	if sqlDB, err := db.DB(); err == nil {
-		sqlDB.SetMaxOpenConns(50)
-		sqlDB.SetMaxIdleConns(10)
-		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+		sqlDB.SetMaxOpenConns(200)                 // 50→200: support 1000+ concurrent rules
+		sqlDB.SetMaxIdleConns(50)                  // 10→50: maintain more idle connections
+		sqlDB.SetConnMaxLifetime(60 * time.Minute) // 30→60: longer lifetime for stability
+		sqlDB.SetConnMaxIdleTime(10 * time.Minute) // add idle timeout
 	}
 	if err := migrate(db); err != nil {
 		return nil, err

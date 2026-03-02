@@ -1,119 +1,38 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { App, Form, Input, Button, Typography, Divider } from 'antd'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { App, Form, Input, Button, Typography, Checkbox } from 'antd'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   UserOutlined,
   LockOutlined,
   BellOutlined,
   LoginOutlined,
+  SafetyOutlined,
+  DashboardOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../auth'
 
 const { Title, Text } = Typography
 
-// ---------- DevOps Network Canvas (light-theme adapted) ----------
-
-interface Node {
+// ---------- Particle Background ----------
+interface Particle {
   x: number
   y: number
   vx: number
   vy: number
-  radius: number
-  type: 'server' | 'database' | 'cloud' | 'monitor'
-  pulse: number
-  pulseSpeed: number
-}
-
-interface DataPacket {
-  fromIdx: number
-  toIdx: number
-  progress: number
-  speed: number
+  size: number
+  opacity: number
   color: string
 }
 
-const NODE_COUNT = 24
-const CONNECT_DIST = 190
+const PARTICLE_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b']
 
-// Muted colors that work on a light background
-const NODE_COLORS: Record<Node['type'], string> = {
-  server: '23, 23, 23',     // --color-primary
-  database: '64, 64, 64',   // --color-secondary
-  cloud: '212, 175, 55',    // --color-cta (gold)
-  monitor: '100, 116, 139', // slate
-}
-
-const PACKET_COLORS = ['#D4AF37', '#171717', '#64748b', '#94a3b8']
-
-function NetworkCanvas() {
+function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const nodesRef = useRef<Node[]>([])
-  const packetsRef = useRef<DataPacket[]>([])
+  const particlesRef = useRef<Particle[]>([])
+  const mouseRef = useRef({ x: 0, y: 0 })
   const animRef = useRef<number>(0)
-  const sizeRef = useRef({ w: 0, h: 0 })
-
-  const initNodes = useCallback((w: number, h: number) => {
-    const types: Node['type'][] = ['server', 'database', 'cloud', 'monitor']
-    const nodes: Node[] = []
-    for (let i = 0; i < NODE_COUNT; i++) {
-      nodes.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
-        radius: Math.random() * 2 + 2,
-        type: types[Math.floor(Math.random() * types.length)],
-        pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.008 + Math.random() * 0.015,
-      })
-    }
-    nodesRef.current = nodes
-    packetsRef.current = []
-  }, [])
-
-  const drawNode = useCallback(
-    (ctx: CanvasRenderingContext2D, node: Node, glow: number) => {
-      const { x, y, type } = node
-      const s = 3.5 + glow * 1.5
-      ctx.save()
-
-      // Subtle glow ring
-      const alpha = 0.06 + glow * 0.1
-      const ringR = s + 5 + glow * 3
-      const grad = ctx.createRadialGradient(x, y, 0, x, y, ringR)
-      const baseColor = NODE_COLORS[type]
-      grad.addColorStop(0, `rgba(${baseColor}, ${alpha})`)
-      grad.addColorStop(1, `rgba(${baseColor}, 0)`)
-      ctx.fillStyle = grad
-      ctx.beginPath()
-      ctx.arc(x, y, ringR, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Core shape
-      ctx.fillStyle = `rgba(${baseColor}, ${0.25 + glow * 0.25})`
-      ctx.beginPath()
-      if (type === 'server') {
-        ctx.rect(x - s / 2, y - s / 2, s, s)
-      } else if (type === 'database') {
-        ctx.arc(x, y, s / 2, 0, Math.PI * 2)
-      } else if (type === 'cloud') {
-        ctx.moveTo(x, y - s / 2)
-        ctx.lineTo(x + s / 2, y)
-        ctx.lineTo(x, y + s / 2)
-        ctx.lineTo(x - s / 2, y)
-        ctx.closePath()
-      } else {
-        ctx.moveTo(x, y - s / 2)
-        ctx.lineTo(x + s / 2, y + s / 2)
-        ctx.lineTo(x - s / 2, y + s / 2)
-        ctx.closePath()
-      }
-      ctx.fill()
-      ctx.restore()
-    },
-    [],
-  )
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -122,195 +41,158 @@ function NetworkCanvas() {
     if (!ctx) return
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1
-      const w = window.innerWidth
-      const h = window.innerHeight
-      canvas.width = w * dpr
-      canvas.height = h * dpr
-      canvas.style.width = `${w}px`
-      canvas.style.height = `${h}px`
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      sizeRef.current = { w, h }
-      if (nodesRef.current.length === 0) initNodes(w, h)
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
     }
     resize()
     window.addEventListener('resize', resize)
 
+    // Initialize particles
+    const particleCount = Math.min(50, Math.floor((canvas.width * canvas.height) / 25000))
+    particlesRef.current = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      size: Math.random() * 3 + 1,
+      opacity: Math.random() * 0.5 + 0.2,
+      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+    }))
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY }
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+
     const tick = () => {
-      const { w, h } = sizeRef.current
-      ctx.clearRect(0, 0, w, h)
-      const nodes = nodesRef.current
-      const packets = packetsRef.current
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.1)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // Move nodes
-      for (const n of nodes) {
-        n.x += n.vx
-        n.y += n.vy
-        n.pulse += n.pulseSpeed
-        if (n.x < 0 || n.x > w) n.vx *= -1
-        if (n.y < 0 || n.y > h) n.vy *= -1
-        n.x = Math.max(0, Math.min(w, n.x))
-        n.y = Math.max(0, Math.min(h, n.y))
-      }
+      particlesRef.current.forEach((p) => {
+        // Update position
+        p.x += p.vx
+        p.y += p.vy
 
-      // Draw connections (light gray on light bg)
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x
-          const dy = nodes[i].y - nodes[j].y
+        // Bounce off edges
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+
+        // Mouse interaction
+        const dx = mouseRef.current.x - p.x
+        const dy = mouseRef.current.y - p.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 150) {
+          const force = (150 - dist) / 150
+          p.vx -= (dx / dist) * force * 0.02
+          p.vy -= (dy / dist) * force * 0.02
+        }
+
+        // Draw particle
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.opacity
+        ctx.fill()
+        ctx.globalAlpha = 1
+      })
+
+      // Draw connections
+      particlesRef.current.forEach((p1, i) => {
+        particlesRef.current.slice(i + 1).forEach((p2) => {
+          const dx = p1.x - p2.x
+          const dy = p1.y - p2.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < CONNECT_DIST) {
-            const alpha = (1 - dist / CONNECT_DIST) * 0.08
-            ctx.strokeStyle = `rgba(23, 23, 23, ${alpha})`
-            ctx.lineWidth = 0.5
+          if (dist < 120) {
             ctx.beginPath()
-            ctx.moveTo(nodes[i].x, nodes[i].y)
-            ctx.lineTo(nodes[j].x, nodes[j].y)
+            ctx.moveTo(p1.x, p1.y)
+            ctx.lineTo(p2.x, p2.y)
+            ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 * (1 - dist / 120)})`
+            ctx.lineWidth = 1
             ctx.stroke()
           }
-        }
-      }
-
-      // Spawn data packets
-      if (Math.random() < 0.025 && packets.length < 10) {
-        const from = Math.floor(Math.random() * nodes.length)
-        let to = Math.floor(Math.random() * nodes.length)
-        while (to === from) to = Math.floor(Math.random() * nodes.length)
-        const dx = nodes[from].x - nodes[to].x
-        const dy = nodes[from].y - nodes[to].y
-        if (Math.sqrt(dx * dx + dy * dy) < CONNECT_DIST * 1.5) {
-          packets.push({
-            fromIdx: from,
-            toIdx: to,
-            progress: 0,
-            speed: 0.004 + Math.random() * 0.008,
-            color: PACKET_COLORS[Math.floor(Math.random() * PACKET_COLORS.length)],
-          })
-        }
-      }
-
-      // Draw & update packets
-      for (let i = packets.length - 1; i >= 0; i--) {
-        const p = packets[i]
-        p.progress += p.speed
-        if (p.progress >= 1) {
-          packets.splice(i, 1)
-          continue
-        }
-        const from = nodes[p.fromIdx]
-        const to = nodes[p.toIdx]
-        const px = from.x + (to.x - from.x) * p.progress
-        const py = from.y + (to.y - from.y) * p.progress
-        const alpha = p.progress < 0.1 ? p.progress / 0.1 : p.progress > 0.9 ? (1 - p.progress) / 0.1 : 1
-
-        const r = parseInt(p.color.slice(1, 3), 16)
-        const g = parseInt(p.color.slice(3, 5), 16)
-        const b = parseInt(p.color.slice(5, 7), 16)
-
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`
-        ctx.beginPath()
-        ctx.arc(px, py, 2, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Trail
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.15})`
-        const trail = Math.max(0, p.progress - 0.05)
-        const tx = from.x + (to.x - from.x) * trail
-        const ty = from.y + (to.y - from.y) * trail
-        ctx.beginPath()
-        ctx.arc(tx, ty, 1.5, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      // Draw nodes
-      for (const n of nodes) {
-        const glow = (Math.sin(n.pulse) + 1) / 2
-        drawNode(ctx, n, glow)
-      }
+        })
+      })
 
       animRef.current = requestAnimationFrame(tick)
     }
 
-    animRef.current = requestAnimationFrame(tick)
+    tick()
 
     return () => {
       window.removeEventListener('resize', resize)
+      window.removeEventListener('mousemove', handleMouseMove)
       cancelAnimationFrame(animRef.current)
     }
-  }, [initNodes, drawNode])
-
-  return <canvas ref={canvasRef} className="login-canvas" />
-}
-
-// ---------- Scrolling Log Lines ----------
-const LOG_LINES = [
-  '[scheduler] rule evaluation completed: 24 rules checked',
-  '[monitor] prometheus scrape OK: 1247 series collected',
-  '[engine] alert processed: severity=warning rule_id=7',
-  '[sender] lark webhook delivered: 200 OK (142ms)',
-  '[health] all datasources healthy: 5/5 online',
-  '[scheduler] firing count updated: 12 critical, 3 warning',
-  '[query] prometheus range query: 0.8s, 4096 samples',
-  '[engine] alert resolved: rule_id=3 duration=2h15m',
-  '[sender] telegram message sent: chat_id=ops-alerts',
-  '[monitor] node_exporter up: 98.7% availability',
-  '[scheduler] threshold match: cpu_usage > 90% on prod-api-3',
-  '[engine] dedup: external_id matched, updating state',
-  '[health] postgres connection pool: 12/50 active',
-  '[sender] rate limiter: 18/20 tokens remaining',
-  '[scheduler] next evaluation cycle in 30s',
-]
-
-function ScrollingLogs() {
-  const [lines, setLines] = useState<string[]>([])
-
-  useEffect(() => {
-    const initial = Array.from({ length: 4 }, () =>
-      LOG_LINES[Math.floor(Math.random() * LOG_LINES.length)]
-    )
-    setLines(initial)
-
-    const timer = setInterval(() => {
-      setLines((prev) => {
-        const next = [...prev, LOG_LINES[Math.floor(Math.random() * LOG_LINES.length)]]
-        return next.slice(-5)
-      })
-    }, 3000)
-
-    return () => clearInterval(timer)
   }, [])
 
   return (
-    <div className="login-logs">
-      {lines.map((line, i) => (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+      }}
+    />
+  )
+}
+
+// ---------- Floating Icons ----------
+const FLOATING_ICONS = [
+  { Icon: BellOutlined, color: '#f59e0b', delay: 0, x: '10%', y: '20%' },
+  { Icon: SafetyOutlined, color: '#10b981', delay: 0.5, x: '85%', y: '15%' },
+  { Icon: DashboardOutlined, color: '#6366f1', delay: 1, x: '15%', y: '75%' },
+  { Icon: NotificationOutlined, color: '#ec4899', delay: 1.5, x: '80%', y: '80%' },
+]
+
+function FloatingIcons() {
+  return (
+    <>
+      {FLOATING_ICONS.map(({ Icon, color, delay, x, y }, i) => (
         <motion.div
-          key={`${i}-${line}`}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: i === lines.length - 1 ? 0.35 : 0.18, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="login-log-line"
+          key={i}
+          style={{
+            position: 'absolute',
+            left: x,
+            top: y,
+            color,
+            fontSize: 32,
+            opacity: 0.3,
+          }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{
+            opacity: 0.3,
+            scale: 1,
+            y: [0, -20, 0],
+          }}
+          transition={{
+            opacity: { delay: delay + 0.5, duration: 0.5 },
+            scale: { delay: delay + 0.5, duration: 0.5 },
+            y: {
+              delay: delay + 1,
+              duration: 3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            },
+          }}
         >
-          <span className="login-log-time">
-            {new Date().toLocaleTimeString('en-US', { hour12: false })}
-          </span>
-          {' '}{line}
+          <Icon />
         </motion.div>
       ))}
-    </div>
+    </>
   )
 }
 
 // ---------- Login Page ----------
-
 export default function Login() {
   const { message } = App.useApp()
   const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const { login, loginWithToken, token } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [oidcStatus, setOidcStatus] = useState<{ enabled: boolean; display_name: string } | null>(null)
 
-  // Handle OIDC callback: ?oidc_token=<jwt>
   useEffect(() => {
     const oidcToken = searchParams.get('oidc_token')
     if (oidcToken) {
@@ -319,12 +201,10 @@ export default function Login() {
     }
   }, [searchParams, loginWithToken, setSearchParams])
 
-  // Redirect when token is set (covers both local login and OIDC callback)
   useEffect(() => {
     if (token) navigate('/', { replace: true })
   }, [token, navigate])
 
-  // Fetch OIDC status on mount
   useEffect(() => {
     fetch('/api/v1/auth/oidc/status')
       .then((r) => r.json())
@@ -338,7 +218,7 @@ export default function Login() {
       await login(v.username, v.password)
       navigate('/')
     } catch (e: any) {
-      message.error(e.message || 'Login failed')
+      message.error(e.message || '登录失败')
     } finally {
       setLoading(false)
     }
@@ -349,109 +229,240 @@ export default function Login() {
   }
 
   return (
-    <div className="login-page">
-      <NetworkCanvas />
-      <ScrollingLogs />
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <ParticleBackground />
+      <FloatingIcons />
 
+      {/* Glass Card */}
       <motion.div
-        className="login-panel"
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        style={{
+          width: '100%',
+          maxWidth: 420,
+          margin: '20px',
+          position: 'relative',
+          zIndex: 10,
+        }}
       >
-        {/* Brand */}
-        <motion.div
-          className="login-brand"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 24,
+            padding: '48px 40px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          }}
         >
-          <div className="login-logo">
-            <BellOutlined />
-          </div>
-          <div>
-            <Title level={3} className="login-title">
+          {/* Logo */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            style={{ textAlign: 'center', marginBottom: 32 }}
+          >
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                margin: '0 auto 16px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                borderRadius: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)',
+              }}
+            >
+              <BellOutlined style={{ fontSize: 36, color: '#fff' }} />
+            </div>
+            <Title
+              level={3}
+              style={{
+                margin: 0,
+                fontSize: 28,
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
               KK Alert
             </Title>
-            <Text className="login-subtitle">
-              Intelligent Alert Management
+            <Text style={{ color: '#64748b', fontSize: 14 }}>
+              智能告警管理平台
             </Text>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Divider */}
-        <div className="login-divider" />
-
-        {/* Form */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-        >
-          {oidcStatus?.enabled && (
-            <>
-              <Button
-                block
-                size="large"
-                icon={<LoginOutlined />}
-                onClick={handleOIDCLogin}
-                className="login-oidc-btn"
+          {/* SSO Button */}
+          <AnimatePresence>
+            {oidcStatus?.enabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
               >
-                {oidcStatus.display_name || 'SSO'} 登录
-              </Button>
-              <Divider plain style={{ margin: '16px 0', color: 'var(--color-secondary)', fontSize: 13 }}>
-                或使用账号密码
-              </Divider>
-            </>
-          )}
+                <Button
+                  block
+                  size="large"
+                  icon={<LoginOutlined />}
+                  onClick={handleOIDCLogin}
+                  style={{
+                    height: 48,
+                    borderRadius: 12,
+                    background: '#f1f5f9',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    fontSize: 15,
+                    fontWeight: 500,
+                    marginBottom: 16,
+                  }}
+                >
+                  {oidcStatus.display_name || 'SSO'} 登录
+                </Button>
 
-          <Form onFinish={onFinish} layout="vertical" size="large" className="login-form">
-            <Form.Item
-              name="username"
-              label="用户名"
-              rules={[{ required: true, message: '请输入用户名' }]}
-            >
-              <Input
-                prefix={<UserOutlined className="login-input-icon" />}
-                placeholder="请输入用户名"
-                autoComplete="username"
-              />
-            </Form.Item>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    margin: '20px 0',
+                  }}
+                >
+                  <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                  <Text style={{ color: '#94a3b8', fontSize: 13 }}>或使用账号密码</Text>
+                  <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            <Form.Item
-              name="password"
-              label="密码"
-              rules={[{ required: true, message: '请输入密码' }]}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="login-input-icon" />}
-                placeholder="请输入密码"
-                autoComplete="current-password"
-              />
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-                className="login-submit-btn"
+          {/* Login Form */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Form onFinish={onFinish} layout="vertical" size="large">
+              <Form.Item
+                name="username"
+                rules={[{ required: true, message: '请输入用户名' }]}
+                style={{ marginBottom: 20 }}
               >
-                {loading ? '登录中...' : '登 录'}
-              </Button>
-            </Form.Item>
-          </Form>
-        </motion.div>
+                <Input
+                  prefix={
+                    <UserOutlined style={{ color: '#94a3b8', fontSize: 16 }} />
+                  }
+                  placeholder="用户名"
+                  autoComplete="username"
+                  style={{
+                    height: 48,
+                    borderRadius: 12,
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    fontSize: 15,
+                  }}
+                />
+              </Form.Item>
 
-        <motion.div
-          className="login-footer"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-        >
-          &copy; {new Date().getFullYear()} KK Alert &middot; 系统运行部驱动
-        </motion.div>
+              <Form.Item
+                name="password"
+                rules={[{ required: true, message: '请输入密码' }]}
+                style={{ marginBottom: 16 }}
+              >
+                <Input.Password
+                  prefix={
+                    <LockOutlined style={{ color: '#94a3b8', fontSize: 16 }} />
+                  }
+                  placeholder="密码"
+                  autoComplete="current-password"
+                  style={{
+                    height: 48,
+                    borderRadius: 12,
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    fontSize: 15,
+                  }}
+                />
+              </Form.Item>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 24,
+                }}
+              >
+                <Checkbox
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ color: '#64748b' }}
+                >
+                  记住我
+                </Checkbox>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    color: '#6366f1',
+                    fontSize: 14,
+                    textDecoration: 'none',
+                  }}
+                >
+                  忘记密码？
+                </Link>
+              </div>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  block
+                  size="large"
+                  style={{
+                    height: 48,
+                    borderRadius: 12,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 14px 0 rgba(99, 102, 241, 0.39)',
+                  }}
+                >
+                  {loading ? '登录中...' : '登 录'}
+                </Button>
+              </Form.Item>
+            </Form>
+          </motion.div>
+
+          {/* Footer */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            style={{
+              textAlign: 'center',
+              marginTop: 32,
+              paddingTop: 24,
+              borderTop: '1px solid #f1f5f9',
+            }}
+          >
+            <Text style={{ color: '#94a3b8', fontSize: 13 }}>
+              © {new Date().getFullYear()} KK Alert · 系统运行部驱动
+            </Text>
+          </motion.div>
+        </div>
       </motion.div>
     </div>
   )

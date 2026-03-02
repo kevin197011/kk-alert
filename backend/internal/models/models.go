@@ -155,3 +155,33 @@ type SystemConfig struct {
 	Key   string `gorm:"primaryKey;size:64" json:"key"`
 	Value string `gorm:"size:256" json:"value"`
 }
+
+
+// PasswordResetToken for password reset flow.
+type PasswordResetToken struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"index" json:"user_id"`
+	Token     string    `gorm:"uniqueIndex;size:64" json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Used      bool      `gorm:"default:false" json:"used"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Role defines a role with permissions.
+type Role struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Name        string         `gorm:"uniqueIndex;size:64" json:"name"`
+	Description string         `gorm:"size:256" json:"description"`
+	Permissions string         `gorm:"type:text" json:"permissions"` // JSON array of permission codes
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// Permission defines a single permission in the system.
+type Permission struct {
+	Code        string `gorm:"primaryKey;size:64" json:"code"`
+	Name        string `gorm:"size:128" json:"name"`
+	Description string `gorm:"size:256" json:"description"`
+	Category    string `gorm:"size:32" json:"category"` // menu, action, resource
+}
